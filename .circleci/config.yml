@@ -2,7 +2,6 @@ workflows:
   version: 2
   node-multi-build:
     jobs:
-      - node-v8
       - node-v10
       - node-latest
 
@@ -30,10 +29,6 @@ jobs:
     <<: *base
     docker:
       - image: node:latest
-  node-v8:
-    <<: *base
-    docker:
-      - image: node:8
   node-v10:
     <<: *base
     docker:

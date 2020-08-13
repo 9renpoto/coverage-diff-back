@@ -2,7 +2,6 @@
 import fs from "fs";
 import { sync as glob } from "glob";
 import yargs from "yargs";
-// @ts-ignore
 import envCI from "env-ci";
 import getArtifactFetcher from "./artifacts/index";
 import { collect } from "./collect";
@@ -15,20 +14,21 @@ const options = yargs
   .option("coverage-glob", {
     type: "string",
     default: "**/coverage/coverage-summary.json",
-    description: "A glob pattern to specify path of coverage-summary.json"
+    description: "A glob pattern to specify path of coverage-summary.json",
   })
   .option("from", {
     type: "string",
     default: "master",
-    description: "Compare branch"
+    description: "Compare branch",
   })
   .option("status", {
     type: "boolean",
-    description: "Update commit status"
+    description: "Update commit status",
   })
   .option("circleci-workflow", {
     type: "string",
-    description: "Name of CircleCI workflow"
+    default: "build",
+    description: "Name of CircleCI workflow",
   })
   .example("$0 --no-status", "# Doesn't update commit status")
   .example(
@@ -45,8 +45,12 @@ if (!GITHUB_TOKEN) {
   throw new Error("Environment variable GITHUB_TOKEN must be required");
 }
 
-const { service, slug, pr, isPr, commit, buildUrl } = envCI();
-if (!isPr) {
+const res = envCI();
+
+if (!res.isCi || res.service !== "circleci") throw new Error("Not support CI");
+
+const { service, slug, pr, isPr, commit, buildUrl } = res;
+if (!isPr || !pr) {
   console.log("This build is not triggered by pull request. Nothing to do.");
   process.exit(0);
 }
@@ -55,40 +59,40 @@ collect({
   cwd: process.cwd(),
   slug,
   branch: options.from,
-  globPattern: options.coverageGlob,
+  globPattern: options["coverage-glob"],
   artifactFetcher: getArtifactFetcher(service),
-  globFetcher: async pattern =>
-    glob(pattern, { ignore: "**/{node_modules,.git}/**" }).map(path => ({
+  globFetcher: async (pattern) =>
+    glob(pattern, { ignore: "**/{node_modules,.git}/**" }).map((path) => ({
       path,
-      coverage: JSON.parse(fs.readFileSync(path, "utf8"))
+      coverage: JSON.parse(fs.readFileSync(path, "utf8")),
     })),
-  circleciWorkflow: options["circleci-workflow"]
+  circleciWorkflow: options["circleci-workflow"],
 })
-  .then(diffReports => {
+  .then((diffReports) => {
     if (diffReports.length === 0) {
       throw new Error("Cannot found any coverage reports");
     }
     return diffReports;
   })
-  .then(async diffReports => {
+  .then(async (diffReports) => {
     const sendComment = reporter({
       slug,
       prId: pr,
       branch: options.from,
-      token: GITHUB_TOKEN
+      token: GITHUB_TOKEN,
     });
     const updateStatus = statusUpdater({
       slug,
       sha: commit,
       buildUrl,
-      token: GITHUB_TOKEN
+      token: GITHUB_TOKEN,
     });
 
     const pendings = [
       sendComment(diffReports).then((url: string) => {
         console.log(`Comment created: ${url}`);
       }),
-      updateStatus(diffReports)
+      updateStatus(diffReports),
     ];
 
     await Promise.all(pendings);

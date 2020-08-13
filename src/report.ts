@@ -1,5 +1,4 @@
-// @ts-ignore
-import Octokit from "@octokit/rest";
+import { Octokit } from "@octokit/rest";
 // @ts-ignore
 import graphql from "@octokit/graphql";
 import { DiffReport } from "./CoverageReport";
@@ -11,7 +10,7 @@ const signature =
 export const generateMarkdown = ({
   prId,
   branch,
-  signature
+  signature,
 }: {
   prId: string;
   branch: string;
@@ -19,7 +18,7 @@ export const generateMarkdown = ({
 }) => (diffReport: DiffReport): string => {
   const table = generateTable(diffReport.diff, {
     prId,
-    branch
+    branch,
   });
   return `<!-- ${signature} -->\n\n## ${diffReport.path}\n${table}`;
 };
@@ -28,7 +27,7 @@ export const reporter = ({
   slug,
   prId,
   branch,
-  token
+  token,
 }: {
   slug: string;
   prId: string;
@@ -38,7 +37,7 @@ export const reporter = ({
   const octokit = new Octokit();
   octokit.authenticate({
     type: "token",
-    token
+    token,
   });
   const [owner, repo] = slug.split("/");
   const comment = diffReports
@@ -48,8 +47,8 @@ export const reporter = ({
   const { data } = await octokit.issues.createComment({
     owner,
     repo,
-    number: parseInt(prId, 10),
-    body: comment
+    issue_number: parseInt(prId, 10),
+    body: comment,
   });
   return data.html_url;
 };
@@ -58,7 +57,7 @@ const hideExistingComments = async ({
   token,
   owner,
   repo,
-  id
+  id,
 }: {
   token: string;
   owner: string;
@@ -68,9 +67,9 @@ const hideExistingComments = async ({
   const {
     repository: {
       pullRequest: {
-        comments: { nodes }
-      }
-    }
+        comments: { nodes },
+      },
+    },
   } = await graphql(
     `
       query comments($owner: String!, $repo: String!, $id: Int!) {
@@ -92,8 +91,8 @@ const hideExistingComments = async ({
       repo,
       id,
       headers: {
-        Authorization: `token ${token}`
-      }
+        Authorization: `token ${token}`,
+      },
     }
   );
   for (let node of nodes) {
@@ -116,8 +115,8 @@ const hideExistingComments = async ({
         headers: {
           Authorization: `token ${token}`,
           // https://developer.github.com/v4/mutation/minimizecomment/
-          Accept: "application/vnd.github.queen-beryl-preview+json"
-        }
+          Accept: "application/vnd.github.queen-beryl-preview+json",
+        },
       }
     );
   }

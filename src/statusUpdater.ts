@@ -27,7 +27,7 @@ export const statusUpdater = ({
   token: string;
 }) => async (diffReports: Array<DiffReport>): Promise<void> => {
   const octokit = new Octokit();
-  octokit.authenticate({
+  octokit.auth({
     type: "token",
     token,
   });

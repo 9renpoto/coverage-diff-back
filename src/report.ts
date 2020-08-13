@@ -35,7 +35,7 @@ export const reporter = ({
   token: string;
 }) => async (diffReports: Array<DiffReport>): Promise<string> => {
   const octokit = new Octokit();
-  octokit.authenticate({
+  octokit.auth({
     type: "token",
     token,
   });

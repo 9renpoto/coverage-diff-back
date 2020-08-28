@@ -1,9 +1,8 @@
 #!/usr/bin/env node
+import envCI from "env-ci";
 import fs from "fs";
 import { sync as glob } from "glob";
 import yargs from "yargs";
-// @ts-ignore
-import envCI from "env-ci";
 import getArtifactFetcher from "./artifacts/index";
 import { collect } from "./collect";
 import { reporter } from "./report";
@@ -15,20 +14,20 @@ const options = yargs
   .option("coverage-glob", {
     type: "string",
     default: "**/coverage/coverage-summary.json",
-    description: "A glob pattern to specify path of coverage-summary.json"
+    description: "A glob pattern to specify path of coverage-summary.json",
   })
   .option("from", {
     type: "string",
     default: "master",
-    description: "Compare branch"
+    description: "Compare branch",
   })
   .option("status", {
     type: "boolean",
-    description: "Update commit status"
+    description: "Update commit status",
   })
   .option("circleci-workflow", {
     type: "string",
-    description: "Name of CircleCI workflow"
+    description: "Name of CircleCI workflow",
   })
   .example("$0 --no-status", "# Doesn't update commit status")
   .example(
@@ -57,38 +56,38 @@ collect({
   branch: options.from,
   globPattern: options.coverageGlob,
   artifactFetcher: getArtifactFetcher(service),
-  globFetcher: async pattern =>
-    glob(pattern, { ignore: "**/{node_modules,.git}/**" }).map(path => ({
+  globFetcher: async (pattern) =>
+    glob(pattern, { ignore: "**/{node_modules,.git}/**" }).map((path) => ({
       path,
-      coverage: JSON.parse(fs.readFileSync(path, "utf8"))
+      coverage: JSON.parse(fs.readFileSync(path, "utf8")),
     })),
-  circleciWorkflow: options["circleci-workflow"]
+  circleciWorkflow: options["circleci-workflow"],
 })
-  .then(diffReports => {
+  .then((diffReports) => {
     if (diffReports.length === 0) {
       throw new Error("Cannot found any coverage reports");
     }
     return diffReports;
   })
-  .then(async diffReports => {
+  .then(async (diffReports) => {
     const sendComment = reporter({
       slug,
       prId: pr,
       branch: options.from,
-      token: GITHUB_TOKEN
+      token: GITHUB_TOKEN,
     });
     const updateStatus = statusUpdater({
       slug,
       sha: commit,
       buildUrl,
-      token: GITHUB_TOKEN
+      token: GITHUB_TOKEN,
     });
 
     const pendings = [
       sendComment(diffReports).then((url: string) => {
         console.log(`Comment created: ${url}`);
       }),
-      updateStatus(diffReports)
+      updateStatus(diffReports),
     ];
 
     await Promise.all(pendings);

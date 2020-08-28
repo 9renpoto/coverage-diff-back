@@ -1,50 +1,28 @@
 workflows:
   version: 2
-  node-multi-build:
+  build:
     jobs:
-      - node-v10
       - node-latest
 
 version: 2
 jobs:
-  base: &base
+  node-latest:
     docker:
       - image: circleci/node:latest
     working_directory: ~/repo
     steps:
       - checkout
       - restore_cache:
-          keys:
-            - v{{ .Environment.CIRCLECI_CACHE_VERSION }}-dependencies-{{ checksum "package-lock.json" }}
-            - v{{ .Environment.CIRCLECI_CACHE_VERSION }}-dependencies-
-      - run: npm install
+        keys:
+          - yarn-packages-{{ checksum "yarn.lock" }}
+
+      - run: yarn install --frozen-lockfile
       - save_cache:
+          key: yarn-packages-{{ checksum "yarn.lock" }}
           paths:
-            - node_modules
-          key: v{{ .Environment.CIRCLECI_CACHE_VERSION }}-dependencies-{{ checksum "package-lock.json" }}
-      - run: npm test
+            - ~/workspace/node_modules
+            - ~/.cache/yarn/
+      - run: yarn test
       - store_artifacts:
           path: coverage
-  node-latest:
-    <<: *base
-    docker:
-      - image: node:latest
-  node-v10:
-    <<: *base
-    docker:
-      - image: node:10
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v{{ .Environment.CIRCLECI_CACHE_VERSION }}-dependencies-{{ checksum "package-lock.json" }}
-            - v{{ .Environment.CIRCLECI_CACHE_VERSION }}-dependencies-
-      - run: npm install
-      - save_cache:
-          paths:
-            - node_modules
-          key: v{{ .Environment.CIRCLECI_CACHE_VERSION }}-dependencies-{{ checksum "package-lock.json" }}
-      - run: npm test
-      - run: npx babel-node --extensions '.ts' src/cli.ts --circleci-workflow=node-multi-build
-      - store_artifacts:
-          path: coverage
+      - run: ts-node src/cli.ts --circleci-workflow=node-multi-build
